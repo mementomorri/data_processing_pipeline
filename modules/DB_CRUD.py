@@ -2,7 +2,7 @@ import urllib
 import pandas as pd
 
 from sqlalchemy import create_engine, MetaData
-from main import configParser
+from modules.global_variables import configParser
 
 connection_url = configParser.get("DBconnection", "connection_url")  # Читаем первую часть URL для подключения к БД
 conn = urllib.parse.quote_plus(

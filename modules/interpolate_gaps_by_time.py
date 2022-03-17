@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-from main import configParser
+from modules.global_variables import configParser
 
 """
 interpolate_gaps_by_time(DataFrame, int) -> DataFrame

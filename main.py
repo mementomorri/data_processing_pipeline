@@ -2,19 +2,17 @@ import configparser
 import logging.config
 
 from modules.get_unusual_data_segments import organize_data
-from modules.read_from_excel import read_from_excel
+from modules.excel_CRUD import read_from_excel, write_excel_existing
 from modules.DB_CRUD import write_to_DB
 from modules.check_log_size import check_log_size
 from modules.interpolate_gaps_by_time import interpolate_gaps_by_time
+from modules.global_variables import current_dirname, configParser
 
-current_dirname = "C:\\test"    # Относительный путь к проекту
-configParser = configparser.RawConfigParser()   # Вызываем парсер конфигурационных файлов
-configParser.read(current_dirname + "\config\config.ini")   # Читаем файл конфигураций хранящий глобальные переменные
-limit_log_size = configParser.get("Logging", "limit_log_size")    # Инициализируем максимальный размер лог файла 10 МБ
-debugging_mode = configParser.get("Logging", "debugging_mode")    # Инициальзируем переключение режима дебаггинга
-columns_with_data = list(configParser.get("IO_files", "columns_with_data"))    # Вызываем список колонок с
-                                                                               # расчетными данными
-n_columns_to_read = configParser.get("IO_files", "n_columns_to_read")    # Указываем сколько колонок читать
+limit_log_size = int(configParser.get("Logging", "limit_log_size"))    # Инициализируем максимальный размер лог файла 10 МБ
+debugging_mode = configParser.getboolean("Logging", "debugging_mode")    # Инициальзируем переключение режима дебаггинга
+n_columns_to_read = int(configParser.get("IO_files", "n_columns_to_read"))    # Указываем сколько колонок читать
+columns_with_data = configParser.get("IO_files", "columns_with_data").split(",") # Вызываем список колонок с
+# расчетными данными
 
 logging.config.fileConfig(current_dirname +
                           configParser.get("Logging", "config_path"))   # Загружаем файл конфигурации логгера
@@ -28,7 +26,7 @@ check_log_size(limit_log_size)    # Проверяем объем лог фай�
 Для выполнения программы нужно импортировать этот модуль и вызвать эту функцию.
 """
 
-if __name__ == '__main__':
+def main_call():
     logger.info("Test case №1 started ")    # Информируем о времени и дате начала программы
     unprocessed_dataframe = read_from_excel(current_dirname + configParser.get("IO_files", "input_excel"),
                                             configParser.get("IO_files", "input_sheet"), n_columns_to_read)
@@ -36,10 +34,10 @@ if __name__ == '__main__':
     try:
         if debugging_mode:  # Если мы находимся в режиме дебага, то добавляем больше служебной информации в лог файл
             logger.debug("--- 1 Starting to write unprocessed data to database")
-        write_to_DB(configParser, unprocessed_dataframe)   # Записываем исходные данные в БД вызвав функцию 'write_to_DB'
+        write_to_DB(unprocessed_dataframe)   # Записываем исходные данные в БД вызвав функцию 'write_to_DB'
     except Exception as error_code:     # Если встречаем ошибку, то сообщаем об этом в лог файл не зависимо от того
                                         # находимся ли мы в режиме дебага
-        logger.error("Unable to write to database."+error_code)
+        logger.error("Unable to write to database. " + str(error_code))
     else:
         if debugging_mode:  # Если мы находимся в режиме дебага, то добавляем больше служебной информации в лог файл
             logger.debug("--- 1 Unprocessed data written successfully")
@@ -55,10 +53,11 @@ if __name__ == '__main__':
             gaps_dataframe.drop(n, axis=1, inplace=True) # обработанные данные в БД
         gaps_dataframe["floatvalue"] = gaps_dataframe["N_skipped"] # Записываем пропуски в колонку 'floatvalue'
         gaps_dataframe.drop("N_skipped", axis=1, inplace=True)  # а затем выкидываем поледнюю расчетную колонку
-        write_to_DB(configParser, gaps_dataframe)  # Записываем пропуски в БД
+        write_to_DB(gaps_dataframe)  # Записываем пропуски в БД
+        write_excel_existing(configParser.get("IO_files", "output_gaps_sheet"), gaps_dataframe)
     except Exception as error_code:     # Если встречаем ошибку, то сообщаем об этом в лог файл не зависимо от того
                                         # находимся ли мы в режиме дебага
-        logger.error("Error occurred while processing dataframe." + error_code)
+        logger.error("Error occurred while processing dataframe. " + str(error_code))
     else:
         if debugging_mode:  # Если мы находимся в режиме дебага, то добавляем больше служебной информации в лог файл
             logger.debug("--- 2 Processed data written successfully")
@@ -68,9 +67,10 @@ if __name__ == '__main__':
             logger.debug("--- 3 Interpolating dataframe and writing results to database")
         interpolated_dataframe = interpolate_gaps_by_time(unprocessed_dataframe.copy(), median)  # Заполняем пропуски
         write_to_DB(interpolated_dataframe)  # в данных методом линейной интерполяции
+        write_excel_existing(configParser.get("IO_files", "output_interpolated_sheet"), interpolated_dataframe)
     except Exception as error_code:     # Если встречаем ошибку, то сообщаем об этом в лог файл не зависимо от того
                                         # находимся ли мы в режиме дебага
-        logger.error("Error occurred while interpolating dataframe." + error_code)
+        logger.error("Error occurred while interpolating dataframe. " + str(error_code))
     else:
         if debugging_mode:  # Если мы находимся в режиме дебага, то добавляем больше служебной информации в лог файл
             logger.debug("--- 3 Interpolation and loading to database finished successfully")
