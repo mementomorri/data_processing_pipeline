@@ -22,8 +22,8 @@ def write_excel_existing(sheet_, dataframe_):
         wb.remove(wb[sheet_])
     ws1 = wb.create_sheet(sheet_, 0)
     df = dataframe_.values.tolist()
-    # header = configParser.get("IO_files", "default_columns").split(",")
-    # ws1.append(header)
+    header = configParser.get("IO_files", "default_columns").split(",")
+    ws1.append(header)
     for i in range(len(df)):
         ws1.append(df[i])
     wb.save(current_dirname + configParser.get("IO_files", "input_excel"))
