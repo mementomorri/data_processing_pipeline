@@ -23,7 +23,7 @@ def interpolate_gaps_by_time(organized_dataframe, median):
     organized_dataframe["t_stamp__"] = organized_dataframe.index.values.astype(np.int64) // 10 ** 6  # Изменяем тип
     # данных для применения функции интерполяции
     organized_dataframe.reset_index(drop=True, inplace=True)  # Сбрасываем индексное поле
-    organized_dataframe["tagid"] = configParser.get("IO_files", "tagid_for_interpolated_data")  # Указываем id тега в
+    organized_dataframe["tagid"] = configParser.get("IO_tags", "tagid_interpolated_data")  # Указываем id тега в
     # который записываем
     organized_dataframe["dataintegrity"].fillna(value=192, inplace=True) # Заполняем пропуски в столбце 'dataintegrity'
     organized_dataframe["t_stamp"].fillna(value=organized_dataframe["t_stamp__"], inplace=True)  # Заполняем пропуски в
