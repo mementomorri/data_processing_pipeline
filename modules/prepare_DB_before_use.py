@@ -1,5 +1,23 @@
-from modules.DB_CRUD import engine
-from modules.global_variables import configParser
+import pandas as pd
+import urllib
+from sqlalchemy import create_engine, MetaData
+import configparser
+import pyodbc
+
+current_dirname = "C:\\test"    # Относительный путь к проекту
+configParser = configparser.RawConfigParser()   # Вызываем парсер конфигурационных файлов
+configParser.read(current_dirname + "\config\config.ini")   # Читаем файл конфигураций хранящий глобальные переменные
+
+connection_url = configParser.get("DBconnection", "connection_url")  # Читаем первую часть URL для подключения к БД
+conn = urllib.parse.quote_plus(
+    "DRIVER={" + configParser.get("DBconnection", "driver") + "};SERVER=" + configParser.get("DBconnection","servername") +
+    "; DATABASE=" + configParser.get("DBconnection", "database") + ";Trusted_Connection=yes")  # Собираем вторую часть
+# URL строки для подключения к БД
+engine = create_engine(connection_url + conn) # Собираем строку подключения вместе и создаем 'engine' для подключения к БД
+meta = MetaData(bind=engine)  # Добавляем метаданные для срабатывания SQL запроса
+MetaData.reflect(meta)
+meta.create_all(engine)
+
 
 
 def create_tables_if_not_exist():
@@ -32,41 +50,66 @@ def create_tables_if_not_exist():
     ) ON [PRIMARY]; 
         """
     engine.execute(sql)
+    print('Проверка наличия нужных таблиц прошла успешно')
 
 
 def clean_tables_if_needed():
     sql = f"""
-        IF EXISTS ( select * from dbo.{configParser.get("DBconnection", "te")} where tagpath='{configParser.get("IO_tags", "tagpath_gaps")}' )
-        BEGIN
-            DELETE * FROM dbo.{configParser.get("DBconnection", "te")} WHERE tagpath='{configParser.get("IO_tags", "tagpath_gaps")}';
-        END
-        GO 
-    """
+        INSERT INTO [dbo].[{configParser.get("DBconnection", "te")}]
+           ([tagpath]
+           ,[scid]
+           ,[datatype]
+           ,[querymode]
+           ,[created]
+           ,[retired])
+     VALUES
+           ('{configParser.get("IO_tags", "tagpath_gaps")}'
+           ,1
+           ,1
+           ,3
+           ,{configParser.get("IO_tags", "tag_creation_time")}
+           , NULL)
+        """
+    if not(pd.read_sql(f'SELECT * FROM dbo.{configParser.get("DBconnection", "te")} WHERE tagpath=\'{configParser.get("IO_tags", "tagpath_gaps")}\'', engine).empty):
+        engine.execute(f"""
+        DELETE FROM dbo.{configParser.get("DBconnection", "te")} WHERE tagpath='{configParser.get("IO_tags", "tagpath_gaps")}';
+        """)
     engine.execute(sql)
 
     sql = f"""
-        IF EXISTS ( select * from dbo.{configParser.get("DBconnection", "te")} where tagpath='{configParser.get("IO_tags", "tagpath_interpolated_data")}' )
-        BEGIN
-            DELETE * FROM dbo.{configParser.get("DBconnection", "te")} WHERE tagpath='{configParser.get("IO_tags", "tagpath_interpolated_data")}';
-        END
-        GO 
-    """
+        INSERT INTO [dbo].[{configParser.get("DBconnection", "te")}]
+           ([tagpath]
+           ,[scid]
+           ,[datatype]
+           ,[querymode]
+           ,[created]
+           ,[retired])
+     VALUES
+           ('{configParser.get("IO_tags", "tagpath_interpolated_data")}'
+           ,1
+           ,1
+           ,3
+           ,{configParser.get("IO_tags", "tag_creation_time")}
+           , NULL)
+        """
+    if not(pd.read_sql(f'SELECT * FROM dbo.{configParser.get("DBconnection", "te")} WHERE tagpath=\'{configParser.get("IO_tags", "tagpath_interpolated_data")}\'', engine).empty):
+        engine.execute(f"""
+        DELETE FROM dbo.{configParser.get("DBconnection", "te")} WHERE tagpath='{configParser.get("IO_tags", "tagpath_interpolated_data")}';
+        """)
     engine.execute(sql)
 
-    sql = f"""
-        IF EXISTS ( select * from dbo.{configParser.get("DBconnection", "table")} where tagid='{configParser.get("IO_tags", "tagid_gaps")}' )
-        BEGIN
-            DELETE * FROM dbo.{configParser.get("DBconnection", "table")} WHERE tagpath='{configParser.get("IO_tags", "tagid_gaps")}';
-        END
-        GO 
-    """
-    engine.execute(sql)
+    if not(pd.read_sql(f'SELECT * FROM dbo.{configParser.get("DBconnection", "table")} WHERE tagid=\'{configParser.get("IO_tags", "tagid_gaps")}\'', engine).empty):
+        engine.execute(f"""
+        DELETE FROM dbo.{configParser.get("DBconnection", "table")} WHERE tagid='{configParser.get("IO_tags", "tagid_gaps")}';
+        """)
 
-    sql = f"""
-        IF EXISTS ( select * from dbo.{configParser.get("DBconnection", "table")} where tagid='{configParser.get("IO_tags", "tagid_interpolated_data")}' )
-        BEGIN
-            DELETE * FROM dbo.{configParser.get("DBconnection", "table")} WHERE tagpath='{configParser.get("IO_tags", "tagid_interpolated_data")}';
-        END
-        GO 
-    """
-    engine.execute(sql)
+    if not(pd.read_sql(f'SELECT * FROM dbo.{configParser.get("DBconnection", "table")} WHERE tagid=\'{configParser.get("IO_tags", "tagid_interpolated_data")}\'', engine).empty):
+        engine.execute(f"""
+        DELETE FROM dbo.{configParser.get("DBconnection", "table")} WHERE tagid='{configParser.get("IO_tags", "tagid_interpolated_data")}';
+        """)
+    print(f'Проверка наличия нужных записей в таблице {configParser.get("DBconnection", "te")} прошла успешно, '
+          f'а также удаление ненужных записей в таблице {configParser.get("DBconnection", "table")} проведено успешно')
+
+if __name__ == '__main__':
+    create_tables_if_not_exist()
+    clean_tables_if_needed()

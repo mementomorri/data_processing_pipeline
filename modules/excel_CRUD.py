@@ -1,4 +1,5 @@
 import pandas
+
 from openpyxl import load_workbook
 from modules.global_variables import configParser, current_dirname
 
@@ -12,7 +13,7 @@ read_from_excel(str, str, int) -> DataFrame
  """
 
 def read_from_excel(excel_book, excel_sheet, columns=None):
-    result = pandas.read_excel(excel_book, excel_sheet, usecols="A:G").sort_values(by="t_stamp")
+    result = pandas.read_excel(excel_book, excel_sheet, usecols="A:G", engine="openpyxl").sort_values(by="t_stamp")
     # Читаем датафрейм из экселя используя внутренний метод Pandas
     return result.iloc[:,:columns] if columns is not None else result
 
@@ -22,7 +23,7 @@ def write_excel_existing(sheet_, dataframe_):
         wb.remove(wb[sheet_])
     ws1 = wb.create_sheet(sheet_, 0)
     df = dataframe_.values.tolist()
-    header = configParser.get("IO_files", "default_columns").split(",")
+    header = configParser.get("IO_files", "default_columns").split(",") + configParser.get("IO_files", "columns_with_data").split(",")
     ws1.append(header)
     for i in range(len(df)):
         ws1.append(df[i])

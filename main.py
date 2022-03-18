@@ -1,5 +1,5 @@
-import configparser
 import logging.config
+import pyodbc
 
 from modules.get_unusual_data_segments import organize_data
 from modules.excel_CRUD import read_from_excel, write_excel_existing
@@ -7,7 +7,6 @@ from modules.DB_CRUD import write_to_DB
 from modules.check_log_size import check_log_size
 from modules.interpolate_gaps_by_time import interpolate_gaps_by_time
 from modules.global_variables import current_dirname, configParser
-from modules.prepare_DB_before_use import create_tables_if_not_exist, clean_tables_if_needed
 
 limit_log_size = int(
     configParser.get("Logging", "limit_log_size"))  # Инициализируем максимальный размер лог файла 10 МБ
@@ -20,8 +19,6 @@ logging.config.fileConfig(current_dirname +
                           configParser.get("Logging", "config_path"))  # Загружаем файл конфигурации логгера
 logger = logging.getLogger("case_info")  # Вызываем объект логгера "case_info"
 check_log_size(limit_log_size)  # Проверяем объем лог файла с помощью функции 'check_log_filse'
-create_tables_if_not_exist()  # Проверяем существуют ли нужные нам таблицы и если нет, то создаем их с помощью функции
-clean_tables_if_needed()  # Удаляем из БЛ данные, которые могут помешать работе программы с помощью функции
 
 """
 Функция 'main_call' не имеет аргкментов и не возвращает никаких данных, её основной смысл инициализация программы
@@ -33,7 +30,7 @@ clean_tables_if_needed()  # Удаляем из БЛ данные, которы�
 
 def main_call():
     try:
-        logger.info("Test case №1 started ")  # Информируем о времени и дате начала программы
+        logger.info("Test case №1 started ")  # Информируем о времени и дате начала программы'
         unprocessed_dataframe = read_from_excel(current_dirname + configParser.get("IO_files", "input_excel"),
                                                 configParser.get("IO_files", "input_sheet"), n_columns_to_read)
         # Берем исходные данные из "book2.xlsx - Sheet3" и читаем 7 первых столбцов
@@ -50,16 +47,17 @@ def main_call():
     try:
         if debugging_mode:  # Если мы находимся в режиме дебага, то добавляем больше служебной информации в лог файл
             logger.debug("--- 2 Starting to reorganize data and writing it to database")
-        gaps_dataframe, median, percent = organize_data(unprocessed_dataframe, True)  # Считаем количество пропусков
+        gaps_dataframe, median, percent = organize_data(unprocessed_dataframe.copy(), True)  # Считаем количество пропусков
         # в исходныйх данных, критерием отбора в функции 'organize_data' являются временные промежутки
         gaps_dataframe["tagid"] = configParser.get("IO_tags", "tagid_gaps")  # id тэга, который будет отвечать за
         # количество пропусков
+        gaps_dataframe["floatvalue"] = gaps_dataframe["N_skipped"]  # Записываем пропуски в колонку 'floatvalue'
+        gaps_dataframe.drop("N_skipped", axis=1, inplace=True)  # а затем выкидываем расчетную колонку
+        write_excel_existing(configParser.get("IO_files", "output_gaps_sheet"), gaps_dataframe)
         for n in columns_with_data:  # Выкидываем рачетные столбцы с помощью цикла 'for', чтобы записать
             gaps_dataframe.drop(n, axis=1, inplace=True)  # обработанные данные в БД
-        gaps_dataframe["floatvalue"] = gaps_dataframe["N_skipped"]  # Записываем пропуски в колонку 'floatvalue'
-        gaps_dataframe.drop("N_skipped", axis=1, inplace=True)  # а затем выкидываем поледнюю расчетную колонку
         write_to_DB(gaps_dataframe)  # Записываем пропуски в БД
-        write_excel_existing(configParser.get("IO_files", "output_gaps_sheet"), gaps_dataframe)
+
     except Exception as error_code:  # Если встречаем ошибку, то сообщаем об этом в лог файл не зависимо от того
         # находимся ли мы в режиме дебага
         logger.error("Error occurred while processing dataframe. " + str(error_code))
