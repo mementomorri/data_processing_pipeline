@@ -6,7 +6,7 @@
 Проект реализует обработку данных хранящихся на SQL Server, которые записываются туда с помощью SCADA системы Ignition. Входные данные сортируются по времени, медианное значение интервала между поступающими данными является нормой, а отклонения от нормы являются аномальными. Аномальные временные промежутки подсчитываются и восполняются с помощью линейной интерполяции, что делает график поступающих значений более гладким, без скачков в значениях и сестема контроля аварийных ситуаций не подает аварийный сигнал без необходимости. Все действия выполняемые программой логгируются и записываются в лог-файл.\
 В результате, выполненный проект расширяет функционал стандартной библиотеки Ignition, дополняя его функционалом, который был желателен для клиента. Окно с вызовом программы выглядит следующим образом.
 
-![](https://github.com/mementomorri/python_data_processing_pipeline/tree/main/images/control_window.png)
+![](https://github.com/mementomorri/python_data_processing_pipeline/blob/main/images/control_window.png)
 
 ## Конфигурация тестового окружения
 
@@ -20,7 +20,7 @@
 Выдать права MSSQL на чтение и запись в данной папке, чтобы MSSQL имел возможность вносить изменения в файлы находящиеся внутри папки. Сделать это можно с помощью bat скрипта «2_grant_permissions.bat» находящегося в папке «setup_SQLserver_env». Исполняемый файл можно запустить двойным щелчком мыши или через терминал Windows.\
 Проверить результат работы программы можно в свойствах папки «test» в разделе «безопасность».
 
-![](https://github.com/mementomorri/python_data_processing_pipeline/tree/main/images/check_permissions.png)
+![](https://github.com/mementomorri/python_data_processing_pipeline/blob/main/images/check_permissions.png)
 
 В случае, если выполнение скрипта невозможно, необходимо выдать права вручную.
 
@@ -28,19 +28,19 @@
 
 На втором этапе конфигурации ТО нужно выполнить скрипт «1_enable_ext_langs.bat», который даст SQL Server возможность испольнять команды с помощью внешних языков, таких как Python. Если выполнить скрипт не удалось, то можно выдать это разрешение выполнив следующий SQL-запрос к SQL Server:
 
-` ` `
+` ` 
 sp_configure 'external scripts enabled', 1;
 
 RECONFIGURE WITH override;
-` ` `
+` ` 
 
 В случае успеха на оповестят следующим текстом.
 
-![](https://github.com/mementomorri/python_data_processing_pipeline/tree/main/images/ext_langs_enabled.png)
+![](https://github.com/mementomorri/python_data_processing_pipeline/blob/main/images/ext_langs_enabled.png)
 
 Таким образом мы разрешили SQL серверу выполнять скрипты сторонних языков. Теперь нужно добавить хранимые процедуры в БД. Сделать это можно посредством скрипта «3_create_procedure.bat», либо вручную выполнив следующий SQL-запрос:
 
-'''
+` ` 
 CREATE PROCEDURE test_procedure_1
 AS
 EXECUTE sp_execute_external_script @language = N'Python'
@@ -50,27 +50,27 @@ sys.path.append("C:\\test")
 from main import main_call
 main_call()
 '
-'''
+` ` 
 
 Хранимая процедура успешно добавлена, протестируем работу процедуры выполнив её с помощью скрипта «4_start_procedure_1.bat». 
 
-![](https://github.com/mementomorri/python_data_processing_pipeline/tree/main/images/test_procedure.png)
+![](https://github.com/mementomorri/python_data_processing_pipeline/blob/main/images/test_procedure.png)
 
 В результате выполнения процедуры мы можем отследить новые записи в лог файле по пути «C:\test\KIUS_Lodochnoe\log\KIUS.log».
 
-![](https://github.com/mementomorri/python_data_processing_pipeline/tree/main/images/log_file.png)
+![](https://github.com/mementomorri/python_data_processing_pipeline/blob/main/images/log_file.png)
 
 И в выходных данных, в выходном файле экселя по пути «C:\test\KIUS_Lodochnoe\data_test_output\book1.xlsx.
 
-![](https://github.com/mementomorri/python_data_processing_pipeline/tree/main/images/output_xl.png)
+![](https://github.com/mementomorri/python_data_processing_pipeline/blob/main/images/output_xl.png)
 
 Как видно по скриншоту, в выходных данных имеется несколько новых столбцов с расчётами в отличие от исходных данных представленных далее.
 
-![](https://github.com/mementomorri/python_data_processing_pipeline/tree/main/images/default_input.png)
+![](https://github.com/mementomorri/python_data_processing_pipeline/blob/main/images/default_input.png)
 
 Пути к исходным и выходным данным конфигурируются в конфигурационном файле по пути «C:\test\KIUS_Lodochnoe\config\config.ini». В разделе «Logging» можно указать путь к файлу конфигурации логгера в переменную «config_path ». В разделе «Input_output» указываются пути к файлам экселя считающимися входными «input_excel » и выходными «output_excel », если выходной файл не существует, то пайтон создаст его сам. В переменных «output_sheet » и «input_sheet » хранятся страницы на которые мы записываем выходные данные и читаем входные соответственно
 
-![](https://github.com/mementomorri/python_data_processing_pipeline/tree/main/images/config_file.png)
+![](https://github.com/mementomorri/python_data_processing_pipeline/blob/main/images/config_file.png)
 
 ## Инструкция к файлу конфигурации config.ini
 
