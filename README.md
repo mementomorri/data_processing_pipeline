@@ -28,11 +28,11 @@
 
 На втором этапе конфигурации ТО нужно выполнить скрипт «1_enable_ext_langs.bat», который даст SQL Server возможность испольнять команды с помощью внешних языков, таких как Python. Если выполнить скрипт не удалось, то можно выдать это разрешение выполнив следующий SQL-запрос к SQL Server:
 
-` ` 
+```
 sp_configure 'external scripts enabled', 1;
 
 RECONFIGURE WITH override;
-` ` 
+```
 
 В случае успеха на оповестят следующим текстом.
 
@@ -40,7 +40,7 @@ RECONFIGURE WITH override;
 
 Таким образом мы разрешили SQL серверу выполнять скрипты сторонних языков. Теперь нужно добавить хранимые процедуры в БД. Сделать это можно посредством скрипта «3_create_procedure.bat», либо вручную выполнив следующий SQL-запрос:
 
-` ` 
+```
 CREATE PROCEDURE test_procedure_1
 AS
 EXECUTE sp_execute_external_script @language = N'Python'
@@ -50,7 +50,7 @@ sys.path.append("C:\\test")
 from main import main_call
 main_call()
 '
-` ` 
+```
 
 Хранимая процедура успешно добавлена, протестируем работу процедуры выполнив её с помощью скрипта «4_start_procedure_1.bat». 
 
